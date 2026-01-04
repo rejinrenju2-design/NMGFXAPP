@@ -1,13 +1,10 @@
-const { getStore } = require('@netlify/kv');
-
-exports.handler = async (event) => {
+exports.handler = async function(event, context) {
   const week = event.queryStringParameters.week;
-  const store = getStore('roster');
 
-  const data = await store.get(week);
+  const data = await context.netlify.kv.get(`roster:${week}`);
 
   return {
     statusCode: 200,
-    body: data || 'null'
+    body: data || "null"
   };
 };
