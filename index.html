@@ -77,9 +77,24 @@ async function saveRoster(){
 async function loadRoster(){
   if(!currentWeek) return alert('Select week start');
   const res = await fetch('/.netlify/functions/load?week='+currentWeek);
-  const data = await res.json();
-  if(!data) return alert('No record found');
-  roster = data;
+  const text = await res.text();
+  if(!res.ok) {
+    console.error('Load failed:', res.status, text);
+    return;
+  }
+  if(!text || text === 'null') {
+    return; // nothing saved yet
+  }
+  let parsed;
+  try { parsed = JSON.parse(text); } catch(e) {
+    console.error('Bad JSON from server:', text);
+    return;
+  }
+  if(!Array.isArray(parsed)) {
+    console.error('Roster is not an array:', parsed);
+    return;
+  }
+  roster = parsed;
   render();
 }
 
