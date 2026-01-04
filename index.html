@@ -118,6 +118,9 @@ currentWeek = iso;
 dateInput.onchange = () => { currentWeek = dateInput.value; render(); };
 
 addRow();
+
+// auto load roster for current week on refresh
+setTimeout(loadRoster, 300);
 </script>
 </body>
 </html>
