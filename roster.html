@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Weekly Duty Roster</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-6">
+<div class="max-w-7xl mx-auto">
+<h1 class="text-3xl font-bold mb-4">Weekly Duty Roster</h1>
+<div class='mb-4 flex gap-2 items-center'>
+<button onclick='login()' class='bg-gray-800 text-white px-4 py-2 rounded'>Admin Login</button>
+<span id='adminStatus' class='text-sm font-semibold text-red-600'>View Only</span>
+<input type='date' id='weekStart' class='border p-2 rounded'/>
+<button onclick='saveRoster()' class='bg-green-600 text-white px-4 py-2 rounded'>Save Week</button>
+<button onclick='loadRoster()' class='bg-purple-600 text-white px-4 py-2 rounded'>Load Saved</button>
+</div>
+<div id="app"></div>
+</div>
+<script>
+const shifts = ['FS','GN','SS','OFF','COFF','WFH'];
+let roster = [];
+let currentWeek = '';
+let isAdmin = false;
+
+function login(){
+  const pwd = prompt('Enter Admin Password');
+  if(pwd === 'NMGFX'){
+    isAdmin = true;
+    document.getElementById('adminStatus').innerText = 'Admin Mode';
+    document.getElementById('adminStatus').className = 'text-sm font-semibold text-green-600';
+    render();
+  } else {
+    alert('Wrong password');
+  }
+}
+
+function addRow(){
+  roster.push({name:'', days:['','','','','','','']});
+  render();
+}
+
+function updateName(i,val){ roster[i].name = val; }
+function updateDay(i,d,val){ roster[i].days[d] = val; render(); }
+
+function color(val){
+  return {
+    FS:'bg-yellow-300',
+    GN:'bg-green-400',
+    SS:'bg-blue-400',
+    OFF:'bg-red-500 text-white',
+    COFF:'bg-red-500 text-white',
+    WFH:'bg-teal-300'
+  }[val] || '';
+}
+
+function getWeekDays(start){
+  let d = new Date(start);
+  const result = [];
+  for(let i=0;i<7;i++){
+    result.push(d.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'}));
+    d.setDate(d.getDate()+1);
+  }
+  return result;
+}
+
+async function saveRoster(){
+  if(!currentWeek) return alert('Select week start');
+  await fetch('/.netlify/functions/save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({week:currentWeek, roster})
+  });
+  alert('Roster saved to cloud');
+}
+
+async function loadRoster(){
+  if(!currentWeek) return alert('Select week start');
+  const res = await fetch('/.netlify/functions/load?week='+currentWeek);
+  const data = await res.json();
+  if(!data) return alert('No record found');
+  roster = data;
+  render();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  let headers = '';
+  if(currentWeek){
+    const days = getWeekDays(currentWeek);
+    headers = days.map(d => `<th>${d}</th>`).join('');
+  }
+
+  let html = `<table class='w-full bg-white shadow rounded'><thead><tr><th>Name</th>${headers}</tr></thead><tbody>`;
+
+  roster.forEach((r,i)=>{
+    html += `<tr><td class='p-1'><input class='p-1 border w-full' ${!isAdmin?'disabled':''} value='${r.name}' oninput='updateName(${i},this.value)'/></td>`;
+    r.days.forEach((v,d)=>{
+      html += `<td class='p-1'><select ${!isAdmin?'disabled':''} class='p-1 w-full ${color(v)}' onchange='updateDay(${i},${d},this.value)'>${shifts.map(s=>`<option ${s===v?'selected':''}>${s}</option>`).join('')}</select></td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  if(isAdmin){ html += `<button class='mt-4 bg-blue-600 text-white px-4 py-2 rounded' onclick='addRow()'>Add Employee</button>`; }
+
+  app.innerHTML = html;
+}
+
+const dateInput = document.getElementById('weekStart');
+// set default to current week's Sunday
+const today = new Date();
+const sunday = new Date(today);
+sunday.setDate(today.getDate() - today.getDay());
+const iso = sunday.toISOString().split('T')[0];
+dateInput.value = iso;
+currentWeek = iso;
+dateInput.onchange = () => { currentWeek = dateInput.value; render(); };
+
+addRow();
+</script>
+</body>
+</html>
