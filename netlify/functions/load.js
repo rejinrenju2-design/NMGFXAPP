@@ -1,9 +1,14 @@
-import { getStore } from "@netlify/blobs";
+const { getStore } = require("@netlify/blobs");
 
-export default async (req) => {
-  const url = new URL(req.url);
-  const week = url.searchParams.get("week");
+exports.handler = async function(event) {
+  const params = new URLSearchParams(event.queryStringParameters || {});
+  const week = params.get("week");
+
   const store = getStore("roster");
   const data = await store.get(week);
-  return new Response(data || "null");
+
+  return {
+    statusCode: 200,
+    body: data || "null"
+  };
 };

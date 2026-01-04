@@ -1,8 +1,13 @@
-import { getStore } from "@netlify/blobs";
+const { getStore } = require("@netlify/blobs");
 
-export default async (req) => {
-  const { week, roster } = JSON.parse(req.body);
+exports.handler = async function(event) {
+  const { week, roster } = JSON.parse(event.body);
   const store = getStore("roster");
+
   await store.set(week, JSON.stringify(roster));
-  return new Response("ok");
+
+  return {
+    statusCode: 200,
+    body: "ok"
+  };
 };
